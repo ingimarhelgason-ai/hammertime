@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Hammer Time</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --accent: #e8c84a;
+    --accent-dim: rgba(232,200,74,0.12);
+    --user-bubble: #1e1e1e;
+    --ai-bubble: #111;
+    --danger: #e05555;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 12px;
+    border-bottom: 0.5px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+
+  #header-left h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  #header-left p {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 1px;
+  }
+
+  #project-badge {
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 0.5px solid rgba(232,200,74,0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #project-badge.none {
+    background: var(--surface2);
+    color: var(--text3);
+    border-color: var(--border);
+  }
+
+  /* Chat */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #chat::-webkit-scrollbar { display: none; }
+
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 82%;
+    animation: fadeUp 0.2s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.ai { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 10px 13px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .msg.user .bubble {
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-bottom-right-radius: 4px;
+    color: var(--text);
+  }
+
+  .msg.ai .bubble {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+
+  .msg.ai .bubble.thinking {
+    color: var(--text3);
+    font-style: italic;
+  }
+
+  .msg-meta {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 3px;
+    padding: 0 4px;
+  }
+
+  /* Photo message */
+  .photo-msg {
+    width: 200px;
+    border-radius: 12px;
+    border-bottom-right-radius: 4px;
+    overflow: hidden;
+    border: 0.5px solid var(--border2);
+    cursor: pointer;
+  }
+
+  .photo-msg img {
+    width: 100%;
+    display: block;
+    max-height: 200px;
+    object-fit: cover;
+  }
+
+  .photo-caption {
+    padding: 6px 10px;
+    background: var(--surface2);
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* GPS tag */
+  .gps-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 3px;
+    padding: 0 4px;
+  }
+
+  .gps-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  /* Input area */
+  #input-area {
+    border-top: 0.5px solid var(--border);
+    padding: 10px 12px 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  /* Photo preview */
+  #photo-preview-wrap {
+    display: none;
+    margin-bottom: 8px;
+    position: relative;
+    width: fit-content;
+  }
+
+  #photo-preview-wrap.visible { display: flex; }
+
+  #photo-preview {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 0.5px solid var(--border2);
+  }
+
+  #remove-photo {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: none;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  #input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  #camera-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+
+  #camera-btn:active { transform: scale(0.93); }
+
+  #camera-btn svg { width: 18px; height: 18px; }
+
+  #camera-input { display: none; }
+
+  #text-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 21px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--text);
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    max-height: 100px;
+    min-height: 42px;
+    line-height: 1.4;
+    -webkit-appearance: none;
+  }
+
+  #text-input::placeholder { color: var(--text3); }
+
+  #send-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, background 0.15s;
+  }
+
+  #send-btn:active { transform: scale(0.93); }
+  #send-btn.ready { background: var(--accent); border-color: var(--accent); }
+  #send-btn svg { width: 16px; height: 16px; }
+
+  /* Lightbox */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #lightbox.visible { display: flex; }
+  #lightbox img { max-width: 95vw; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+  #lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Welcome */
+  #welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 8px;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  #welcome .icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+
+  #welcome h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  #welcome p {
+    font-size: 14px;
+    color: var(--text3);
+    max-width: 260px;
+    line-height: 1.6;
+  }
+
+  .divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text3);
+    padding: 4px 0;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="header">
+    <div id="header-left">
+      <h1>Hammer Time 🔨</h1>
+      <p id="header-sub">din byggelog</p>
+    </div>
+    <div id="project-badge" class="none">intet projekt</div>
+  </div>
+
+  <div id="chat">
+    <div id="welcome">
+      <div class="icon">🔨</div>
+      <h2>Hej Ingi</h2>
+      <p>Tag et foto fra pladsen eller stil et spørgsmål. Jeg husker alt.</p>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="photo-preview-wrap">
+      <img id="photo-preview" src="" alt="">
+      <button id="remove-photo">×</button>
+    </div>
+    <div id="input-row">
+      <button id="camera-btn" title="Tag foto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </button>
+      <input type="file" id="camera-input" accept="image/*" capture="environment">
+      <textarea id="text-input" placeholder="Skriv eller stil et spørgsmål..." rows="1"></textarea>
+      <button id="send-btn" title="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox">
+  <button id="lightbox-close">×</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAglgiWxVoXo6O8bLZOWCeJqYkRGjKzr0k",
+  authDomain: "hammertime-d30bf.firebaseapp.com",
+  projectId: "hammertime-d30bf",
+  storageBucket: "hammertime-d30bf.firebasestorage.app",
+  messagingSenderId: "607382441157",
+  appId: "1:607382441157:web:410e1e5df3e35b39c2b4ac"
+};
+
+const CLAUDE_API_KEY = "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";
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const storage = getStorage(fbApp);
+
+// State
+let currentLocation = null;
+let currentProject = null;
+let pendingPhoto = null;
+let pendingPhotoBase64 = null;
+let isThinking = false;
+let conversationHistory = [];
+
+// DOM
+const chatEl = document.getElementById('chat');
+const welcomeEl = document.getElementById('welcome');
+const textInput = document.getElementById('text-input');
+const sendBtn = document.getElementById('send-btn');
+const cameraBtn = document.getElementById('camera-btn');
+const cameraInput = document.getElementById('camera-input');
+const photoPreviewWrap = document.getElementById('photo-preview-wrap');
+const photoPreview = document.getElementById('photo-preview');
+const removePhotoBtn = document.getElementById('remove-photo');
+const projectBadge = document.getElementById('project-badge');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+const lightboxClose = document.getElementById('lightbox-close');
+
+// GPS + reverse geocode
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+      headers: { 'Accept-Language': 'da' }
+    });
+    const data = await res.json();
+    const a = data.address || {};
+    const parts = [
+      a.road,
+      a.house_number,
+      a.postcode,
+      a.city || a.town || a.village
+    ].filter(Boolean);
+    return parts.join(' ') || data.display_name?.split(',').slice(0,2).join(',') || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function getLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const address = await reverseGeocode(lat, lng);
+      currentLocation = {
+        lat,
+        lng,
+        accuracy: pos.coords.accuracy,
+        address: address || null
+      };
+      // Update GPS tag in last user message if visible
+      const gpsTags = document.querySelectorAll('.gps-tag');
+      if (gpsTags.length > 0 && address) {
+        gpsTags[gpsTags.length - 1].innerHTML = `<span class=gps-dot></span>${address}`;
+      }
+    },
+    err => console.log('GPS:', err),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+getLocation();
+setInterval(getLocation, 300000);
+
+// Format time
+function formatTime(date) {
+  return date.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+}
+
+// Add message to chat UI
+function addMessage(role, content, meta = {}) {
+  if (welcomeEl) welcomeEl.style.display = 'none';
+
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+
+  const now = new Date();
+
+  if (meta.photoUrl || meta.photoDataUrl) {
+    const photoDiv = document.createElement('div');
+    photoDiv.className = 'photo-msg';
+    const img = document.createElement('img');
+    img.src = meta.photoDataUrl || meta.photoUrl;
+    img.alt = 'foto';
+    img.onclick = () => openLightbox(meta.photoUrl || meta.photoDataUrl);
+    photoDiv.appendChild(img);
+
+    const cap = document.createElement('div');
+    cap.className = 'photo-caption';
+    cap.textContent = `${formatTime(now)} · ${formatDate(now)}`;
+    photoDiv.appendChild(cap);
+    msg.appendChild(photoDiv);
+
+    if (content) {
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = content;
+      msg.appendChild(bubble);
+    }
+  } else {
+    const bubble = document.createElement('div');
+    bubble.className = `bubble${meta.thinking ? ' thinking' : ''}`;
+    bubble.textContent = content;
+    msg.appendChild(bubble);
+  }
+
+  if (currentLocation && role === 'user') {
+    const gps = document.createElement('div');
+    gps.className = 'gps-tag';
+    gps.innerHTML = `<span class="gps-dot"></span>${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`;
+    msg.appendChild(gps);
+  }
+
+  const metaEl = document.createElement('div');
+  metaEl.className = 'msg-meta';
+  metaEl.textContent = formatTime(now);
+  msg.appendChild(metaEl);
+
+  chatEl.appendChild(msg);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return msg;
+}
+
+function addThinking() {
+  return addMessage('ai', 'tænker...', { thinking: true });
+}
+
+// Lightbox
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('visible');
+}
+
+lightboxClose.onclick = () => lightbox.classList.remove('visible');
+lightbox.onclick = (e) => { if (e.target === lightbox) lightbox.classList.remove('visible'); };
+
+// Camera
+cameraBtn.onclick = () => cameraInput.click();
+
+cameraInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    pendingPhoto = file;
+    pendingPhotoBase64 = ev.target.result.split(',')[1];
+    photoPreview.src = ev.target.result;
+    photoPreviewWrap.classList.add('visible');
+    updateSendBtn();
+    textInput.focus();
+  };
+  reader.readAsDataURL(file);
+  cameraInput.value = '';
+};
+
+removePhotoBtn.onclick = () => {
+  pendingPhoto = null;
+  pendingPhotoBase64 = null;
+  photoPreviewWrap.classList.remove('visible');
+  photoPreview.src = '';
+  updateSendBtn();
+};
+
+// Send button state
+function updateSendBtn() {
+  const hasContent = textInput.value.trim() || pendingPhoto;
+  sendBtn.classList.toggle('ready', !!hasContent);
+}
+
+textInput.oninput = () => {
+  textInput.style.height = 'auto';
+  textInput.style.height = Math.min(textInput.scrollHeight, 100) + 'px';
+  updateSendBtn();
+};
+
+textInput.onkeydown = (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+};
+
+sendBtn.onclick = handleSend;
+
+// Load history from Firestore
+async function loadHistory() {
+  try {
+    const q = query(collection(db, 'logs'), orderBy('timestamp', 'asc'));
+    const snap = await getDocs(q);
+    const msgs = [];
+    snap.forEach(doc => msgs.push({ id: doc.id, ...doc.data() }));
+
+    // Rebuild conversation context (last 30 entries)
+    const recent = msgs.slice(-30);
+    recent.forEach(m => {
+      if (m.role === 'user') {
+        const entry = { role: 'user', content: [] };
+        if (m.photoUrl) {
+          entry.content.push({ type: 'text', text: `[Foto logget - ${m.timestamp?.toDate?.()?.toLocaleDateString('da-DK') || 'dato ukendt'}${m.location ? ` - GPS: ${m.location.lat.toFixed(4)}, ${m.location.lng.toFixed(4)}` : ''}${m.project ? ` - Projekt: ${m.project}` : ''}]` });
+        }
+        if (m.text) entry.content.push({ type: 'text', text: m.text });
+        if (entry.content.length > 0) conversationHistory.push(entry);
+      } else if (m.role === 'ai' && m.text) {
+        conversationHistory.push({ role: 'assistant', content: m.text });
+      }
+    });
+
+    // Show last 20 in UI
+    const display = msgs.slice(-20);
+    if (display.length > 0) {
+      welcomeEl.style.display = 'none';
+      if (display.length > 20) {
+        const div = document.createElement('div');
+        div.className = 'divider';
+        div.textContent = `— ${msgs.length} tidligere opslag —`;
+        chatEl.insertBefore(div, chatEl.firstChild);
+      }
+      display.forEach(m => {
+        if (m.role === 'user') {
+          addMessage('user', m.text || '', { photoUrl: m.photoUrl });
+        } else {
+          addMessage('ai', m.text);
+        }
+      });
+
+      // Set current project from last known
+      const lastProject = [...msgs].reverse().find(m => m.project);
+      if (lastProject?.project) setProject(lastProject.project);
+    }
+  } catch (e) {
+    console.error('Load error:', e);
+  }
+}
+
+function setProject(name) {
+  currentProject = name;
+  projectBadge.textContent = name;
+  projectBadge.classList.remove('none');
+}
+
+// Save to Firestore
+async function saveLog(role, text, photoUrl = null, project = null) {
+  try {
+    await addDoc(collection(db, 'logs'), {
+      role,
+      text: text || null,
+      photoUrl: photoUrl || null,
+      project: project || currentProject || null,
+      location: currentLocation || null,
+      timestamp: serverTimestamp()
+    });
+  } catch (e) {
+    console.error('Save error:', e);
+  }
+}
+
+// Upload photo to Firebase Storage
+async function uploadPhoto(file) {
+  const filename = `photos/${Date.now()}_${file.name}`;
+  const storageRef = ref(storage, filename);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+}
+
+// Build system prompt
+function buildSystemPrompt() {
+  const now = new Date();
+  return `Du er Hammer Time — en personlig byggelog assistent for Ingi, en tømrer og byggeentreprenør baseret i København.
+
+I dag er det ${now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
+${currentProject ? `Aktivt projekt: ${currentProject}` : 'Intet aktivt projekt endnu.'}
+${currentLocation ? `Nuværende GPS: ${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}` : ''}
+
+Din opgave:
+- Log Ingis arbejde via fotos, noter og samtaler
+- Svar på spørgsmål om projekter, tid brugt, hvad der er sket
+- Identificer automatisk projekter fra GPS og kontekst
+- Hvis du ser et foto fra en ny lokation, spørg om det er et nyt projekt
+- Vær kortfattet og direkte — Ingi er på byggepladsen med snavsede hænder
+- Tal dansk
+- Hvis du opretter eller identificerer et projekt, start dit svar med: PROJEKT: [projektnavn]
+
+Du har adgang til hele samtalehistorikken. Brug den til at svare præcist på spørgsmål om hvad der er sket, hvornår, og på hvilke projekter.`;
+}
+
+// Call Claude API
+async function callClaude(userText, photoBase64 = null) {
+  const userMsg = { role: 'user', content: [] };
+
+  if (!photoBase64 && !userText) return null;
+
+  // Always inject metadata first so Claude always knows time + location
+  const now = new Date();
+  const meta = [
+    'Tidspunkt: ' + now.toLocaleString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    currentLocation ? 'Lokation: ' + (currentLocation.address || (currentLocation.lat.toFixed(5) + ', ' + currentLocation.lng.toFixed(5))) + ' (±' + Math.round(currentLocation.accuracy) + 'm)' : 'Lokation: ikke tilgængelig',
+    currentProject ? 'Projekt: ' + currentProject : 'Projekt: intet aktivt',
+  ].join(' | ');
+  userMsg.content.push({ type: 'text', text: meta });
+
+  if (photoBase64) {
+    userMsg.content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/jpeg', data: photoBase64 }
+    });
+  }
+
+  if (userText) {
+    userMsg.content.push({ type: 'text', text: userText });
+  }
+
+  conversationHistory.push(userMsg);
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1024,
+      system: buildSystemPrompt(),
+      messages: conversationHistory
+    })
+  });
+
+  const data = await response.json();
+  const reply = data.content?.[0]?.text || 'Fejl — prøv igen.';
+
+  conversationHistory.push({ role: 'assistant', content: reply });
+
+  // Keep history manageable
+  if (conversationHistory.length > 60) {
+    conversationHistory = conversationHistory.slice(-50);
+  }
+
+  return reply;
+}
+
+// Parse project from AI reply
+function extractProject(reply) {
+  const match = reply.match(/PROJEKT:\s*(.+?)(\n|$)/);
+  if (match) return match[1].trim();
+  return null;
+}
+
+// Main send handler
+async function handleSend() {
+  if (isThinking) return;
+  const text = textInput.value.trim();
+  const hasPhoto = !!pendingPhoto;
+
+  if (!text && !hasPhoto) return;
+
+  isThinking = true;
+  updateSendBtn();
+
+  // Capture pending state
+  const photoFile = pendingPhoto;
+  const photoBase64 = pendingPhotoBase64;
+  const photoDataUrl = photoPreview.src;
+
+  // Clear input
+  textInput.value = '';
+  textInput.style.height = 'auto';
+  pendingPhoto = null;
+  pendingPhotoBase64 = null;
+  photoPreviewWrap.classList.remove('visible');
+  photoPreview.src = '';
+
+  // Show user message
+  addMessage('user', text, hasPhoto ? { photoDataUrl } : {});
+
+  // Show thinking
+  const thinkingMsg = addThinking();
+
+  try {
+    // Upload photo if present
+    let photoUrl = null;
+    if (photoFile) {
+      photoUrl = await uploadPhoto(photoFile);
+    }
+
+    // Save user log
+    await saveLog('user', text || null, photoUrl);
+
+    // Call Claude
+    const reply = await callClaude(text || (hasPhoto ? 'Nyt foto logget.' : ''), photoBase64);
+
+    // Remove thinking bubble
+    thinkingMsg.remove();
+
+    // Check for project detection
+    const detectedProject = extractProject(reply);
+    if (detectedProject) setProject(detectedProject);
+
+    // Clean reply (remove PROJEKT: line from display)
+    const cleanReply = reply.replace(/PROJEKT:\s*.+?(\n|$)/, '').trim();
+
+    // Show AI reply
+    addMessage('ai', cleanReply);
+
+    // Save AI log
+    await saveLog('ai', cleanReply);
+
+  } catch (err) {
+    thinkingMsg.remove();
+    addMessage('ai', `Fejl: ${err.message || 'ukendt fejl'}`);
+    console.error('HammerTime error:', err);
+  }
+
+  isThinking = false;
+  updateSendBtn();
+}
+
+// Init
+loadHistory();
+</script>
+</body>
+</html>
