@@ -430,7 +430,7 @@ const firebaseConfig = {
   appId: "1:607382441157:web:410e1e5df3e35b39c2b4ac"
 };
 
-const CLAUDE_API_KEY = "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";
+let CLAUDE_API_KEY = localStorage.getItem("ht_api_key") || "";
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
@@ -866,7 +866,39 @@ async function handleSend() {
 }
 
 // Init
-loadHistory();
+function checkApiKey() {
+  CLAUDE_API_KEY = localStorage.getItem("ht_api_key") || "";
+  if (!CLAUDE_API_KEY) {
+    document.getElementById("key-screen").style.display = "flex";
+  } else {
+    loadHistory();
+  }
+}
+
+document.getElementById("key-save").onclick = () => {
+  const val = document.getElementById("key-input").value.trim();
+  if (!val.startsWith("sk-ant-")) {
+    alert("Det ser ikke ud som en gyldig API nøgle. Den skal starte med sk-ant-");
+    return;
+  }
+  localStorage.setItem("ht_api_key", val);
+  CLAUDE_API_KEY = val;
+  document.getElementById("key-screen").style.display = "none";
+  loadHistory();
+};
+
+checkApiKey();
 </script>
+
+<!-- API Key Setup -->
+<div id="key-screen" style="display:none; position:fixed; inset:0; background:#0a0a0a; z-index:200; flex-direction:column; align-items:center; justify-content:center; padding:24px; gap:16px;">
+  <p style="font-size:28px;">🔨</p>
+  <h2 style="font-size:18px; font-weight:600; color:#f0f0f0;">Hammer Time</h2>
+  <p style="font-size:13px; color:#888; text-align:center; max-width:280px; line-height:1.6;">Indsæt din Anthropic API nøgle for at komme i gang. Den gemmes kun på din enhed.</p>
+  <input id="key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%; max-width:320px; background:#1c1c1c; border:0.5px solid rgba(255,255,255,0.14); border-radius:12px; padding:12px 16px; font-size:14px; color:#f0f0f0; outline:none; font-family:monospace;">
+  <button id="key-save" style="width:100%; max-width:320px; background:#e8c84a; border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:600; color:#0a0a0a; cursor:pointer;">Gem og start</button>
+  <p style="font-size:11px; color:#555; text-align:center; max-width:280px;">Nøglen forlader aldrig din enhed. Find den på console.anthropic.com</p>
+</div>
+
 </body>
 </html>
