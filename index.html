@@ -817,6 +817,32 @@ function extractProject(reply) {
   return null;
 }
 
+// Silent photo log — no AI, just save and confirm
+async function handlePhotoOnly(photoFile, photoBase64, photoDataUrl) {
+  const previewMsg = addMessage('user', '', { photoDataUrl });
+
+  try {
+    const photoUrl = await uploadPhoto(photoFile);
+    await saveLog('user', null, photoUrl);
+
+    // Show tiny confirm
+    const confirm = document.createElement('div');
+    confirm.className = 'msg ai';
+    confirm.innerHTML = `<div class="bubble" style="font-size:12px; color:var(--text3); padding:6px 12px;">✓ logget · ${currentLocation?.address || (currentLocation ? currentLocation.lat.toFixed(4)+', '+currentLocation.lng.toFixed(4) : 'ingen GPS')}</div>`;
+    chatEl.appendChild(confirm);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    // Auto-detect project from location silently
+    if (currentLocation && !currentProject) {
+      const addr = currentLocation.address;
+      if (addr) setProject(addr.split(',')[0]);
+    }
+
+  } catch (err) {
+    addMessage('ai', `Fejl: ${err.message}`);
+  }
+}
+
 // Main send handler
 async function handleSend() {
   if (isThinking) return;
@@ -825,15 +851,56 @@ async function handleSend() {
 
   if (!text && !hasPhoto) return;
 
+  // Detect if this is a question (AI wakes up) or just a log (silent)
+  const isQuestion = text && (text.trim().endsWith('?') || /^(hvad|hvor|hvem|hvornår|hvordan|hvorfor|kan du|vis mig|fortæl|what|how|when|who|why|show|tell)/i.test(text.trim()));
+  const silentLog = !isQuestion;
+
+  // Silent log — photo only, or photo+note, or plain note without question
+  if (silentLog) {
+    const photoFile = pendingPhoto;
+    const photoBase64 = pendingPhotoBase64;
+    const photoDataUrl = photoPreview.src;
+    pendingPhoto = null;
+    pendingPhotoBase64 = null;
+    photoPreviewWrap.classList.remove('visible');
+    photoPreview.src = '';
+    updateSendBtn();
+
+    // Show user message
+    if (hasPhoto) {
+      addMessage('user', text, { photoDataUrl });
+    } else if (text) {
+      addMessage('user', text);
+    }
+
+    try {
+      let photoUrl = null;
+      if (photoFile) photoUrl = await uploadPhoto(photoFile);
+      await saveLog('user', text || null, photoUrl);
+
+      const confirm = document.createElement('div');
+      confirm.className = 'msg ai';
+      confirm.innerHTML = `<div class="bubble" style="font-size:12px; color:var(--text3); padding:6px 12px;">✓ logget · ${currentLocation?.address || (currentLocation ? currentLocation.lat.toFixed(4)+', '+currentLocation.lng.toFixed(4) : 'ingen GPS')}</div>`;
+      chatEl.appendChild(confirm);
+      chatEl.scrollTop = chatEl.scrollHeight;
+
+      if (currentLocation && !currentProject) {
+        const addr = currentLocation.address;
+        if (addr) setProject(addr.split(',')[0]);
+      }
+    } catch (err) {
+      addMessage('ai', `Fejl: ${err.message}`);
+    }
+    return;
+  }
+
   isThinking = true;
   updateSendBtn();
 
-  // Capture pending state
   const photoFile = pendingPhoto;
   const photoBase64 = pendingPhotoBase64;
   const photoDataUrl = photoPreview.src;
 
-  // Clear input
   textInput.value = '';
   textInput.style.height = 'auto';
   pendingPhoto = null;
@@ -841,39 +908,28 @@ async function handleSend() {
   photoPreviewWrap.classList.remove('visible');
   photoPreview.src = '';
 
-  // Show user message
   addMessage('user', text, hasPhoto ? { photoDataUrl } : {});
 
-  // Show thinking
   const thinkingMsg = addThinking();
 
   try {
-    // Upload photo if present
     let photoUrl = null;
     if (photoFile) {
       photoUrl = await uploadPhoto(photoFile);
     }
 
-    // Save user log
     await saveLog('user', text || null, photoUrl);
 
-    // Call Claude
-    const reply = await callClaude(text || (hasPhoto ? 'Nyt foto logget.' : ''), photoBase64);
+    const reply = await callClaude(text, photoBase64);
 
-    // Remove thinking bubble
     thinkingMsg.remove();
 
-    // Check for project detection
     const detectedProject = extractProject(reply);
     if (detectedProject) setProject(detectedProject);
 
-    // Clean reply (remove PROJEKT: line from display)
     const cleanReply = reply.replace(/PROJEKT:\s*.+?(\n|$)/, '').trim();
 
-    // Show AI reply
     addMessage('ai', cleanReply);
-
-    // Save AI log
     await saveLog('ai', cleanReply);
 
   } catch (err) {
