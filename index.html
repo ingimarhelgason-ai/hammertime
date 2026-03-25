@@ -3,410 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Hammer Time</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  
-  :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1c1c1c;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.14);
-    --text: #f0f0f0;
-    --text2: #888;
-    --text3: #555;
-    --accent: #e8c84a;
-    --accent-dim: rgba(232,200,74,0.12);
-    --user-bubble: #1e1e1e;
-    --ai-bubble: #111;
-    --danger: #e05555;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-    overflow: hidden;
-  }
+:root {
+  --bg: #111;
+  --surface: #1a1a1a;
+  --surface2: #222;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #f0f0f0;
+  --text2: #999;
+  --text3: #555;
+  --accent: #f0c040;
+  --accent-dark: #c9a030;
+  --danger: #e05555;
+}
 
-  #app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    max-width: 600px;
-    margin: 0 auto;
-  }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; }
 
-  /* Header */
-  #header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px 12px;
-    border-bottom: 0.5px solid var(--border);
-    flex-shrink: 0;
-    background: var(--bg);
-  }
+#header { padding: 14px 18px 10px; border-bottom: 0.5px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
+#header-title { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+#header-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+#project-pill { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border2); color: var(--text2); background: var(--surface2); cursor: pointer; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#project-pill.active { color: var(--accent); border-color: rgba(240,192,64,0.4); background: rgba(240,192,64,0.08); }
 
-  #header-left h1 {
-    font-size: 17px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    color: var(--text);
-  }
+#feed { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
+#feed::-webkit-scrollbar { display: none; }
 
-  #header-left p {
-    font-size: 11px;
-    color: var(--text3);
-    margin-top: 1px;
-  }
+.entry { display: flex; flex-direction: column; gap: 4px; animation: fadeUp 0.2s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.entry-photo { width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; border: 0.5px solid var(--border2); cursor: pointer; display: block; }
+.entry-note { font-size: 13px; color: var(--text); background: var(--surface); border-radius: 10px; padding: 8px 12px; border: 0.5px solid var(--border); }
+.entry-meta { font-size: 10px; color: var(--text3); padding: 0 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.entry-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0.7; flex-shrink: 0; }
 
-  #project-badge {
-    font-size: 11px;
-    background: var(--accent-dim);
-    color: var(--accent);
-    border: 0.5px solid rgba(232,200,74,0.3);
-    border-radius: 20px;
-    padding: 4px 10px;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+#empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 40px 20px; text-align: center; }
+#empty .hammer { font-size: 48px; }
+#empty h2 { font-size: 20px; font-weight: 700; color: var(--accent); }
+#empty p { font-size: 14px; color: var(--text3); max-width: 240px; line-height: 1.6; }
 
-  #project-badge.none {
-    background: var(--surface2);
-    color: var(--text3);
-    border-color: var(--border);
-  }
+#photo-preview-strip { padding: 8px 14px 0; flex-shrink: 0; display: none; align-items: center; gap: 10px; }
+#photo-preview-strip.visible { display: flex; }
+#photo-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 0.5px solid var(--border2); }
+#photo-remove { width: 22px; height: 22px; border-radius: 50%; background: var(--danger); border: none; color: white; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#photo-hint { font-size: 12px; color: var(--text3); }
 
-  /* Chat */
-  #chat {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 16px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    -webkit-overflow-scrolling: touch;
-  }
+#note-area { padding: 8px 14px; border-top: 0.5px solid var(--border); flex-shrink: 0; display: none; gap: 8px; align-items: flex-end; }
+#note-area.visible { display: flex; }
+#note-cancel { width: 38px; height: 38px; border-radius: 50%; background: var(--surface2); border: 0.5px solid var(--border2); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; color: var(--text2); }
+#note-input { flex: 1; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 20px; padding: 9px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; resize: none; min-height: 38px; max-height: 100px; -webkit-appearance: none; }
+#note-input::placeholder { color: var(--text3); }
+#note-send { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#note-send svg { width: 15px; height: 15px; }
 
-  #chat::-webkit-scrollbar { display: none; }
+#camera-area { padding: 10px 14px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); flex-shrink: 0; }
+#camera-btn { width: 100%; height: 64px; background: var(--accent); border: none; border-radius: 16px; font-size: 18px; font-weight: 700; color: #111; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s, background 0.1s; }
+#camera-btn:active { transform: scale(0.97); background: var(--accent-dark); }
+#camera-btn svg { width: 22px; height: 22px; }
+#camera-input { display: none; }
 
-  .msg {
-    display: flex;
-    flex-direction: column;
-    max-width: 82%;
-    animation: fadeUp 0.2s ease;
-  }
+#new-project-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: flex-end; justify-content: center; }
+#new-project-modal.visible { display: flex; }
+#new-project-sheet { background: var(--surface); border-radius: 20px 20px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom)); width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; }
+#new-project-sheet h3 { font-size: 17px; font-weight: 600; }
+#new-project-sheet .addr { font-size: 13px; color: var(--text2); }
+#project-name-input { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 12px; padding: 12px 16px; font-size: 16px; color: var(--text); font-family: inherit; outline: none; width: 100%; -webkit-appearance: none; }
+#project-confirm-btn { width: 100%; height: 52px; background: var(--accent); border: none; border-radius: 14px; font-size: 16px; font-weight: 700; color: #111; cursor: pointer; }
+#project-skip-btn { width: 100%; height: 44px; background: transparent; border: 0.5px solid var(--border2); border-radius: 14px; font-size: 14px; color: var(--text2); cursor: pointer; }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+#lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; align-items: center; justify-content: center; }
+#lightbox.visible { display: flex; }
+#lightbox img { max-width: 96vw; max-height: 92vh; object-fit: contain; border-radius: 8px; }
+#lightbox-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
 
-  .msg.user { align-self: flex-end; align-items: flex-end; }
-  .msg.ai { align-self: flex-start; align-items: flex-start; }
-
-  .bubble {
-    padding: 10px 13px;
-    border-radius: 16px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
-  }
-
-  .msg.user .bubble {
-    background: var(--surface2);
-    border: 0.5px solid var(--border2);
-    border-bottom-right-radius: 4px;
-    color: var(--text);
-  }
-
-  .msg.ai .bubble {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-bottom-left-radius: 4px;
-    color: var(--text);
-  }
-
-  .msg.ai .bubble.thinking {
-    color: var(--text3);
-    font-style: italic;
-  }
-
-  .msg-meta {
-    font-size: 10px;
-    color: var(--text3);
-    margin-top: 3px;
-    padding: 0 4px;
-  }
-
-  /* Photo message */
-  .photo-msg {
-    width: 200px;
-    border-radius: 12px;
-    border-bottom-right-radius: 4px;
-    overflow: hidden;
-    border: 0.5px solid var(--border2);
-    cursor: pointer;
-  }
-
-  .photo-msg img {
-    width: 100%;
-    display: block;
-    max-height: 200px;
-    object-fit: cover;
-  }
-
-  .photo-caption {
-    padding: 6px 10px;
-    background: var(--surface2);
-    font-size: 11px;
-    color: var(--text2);
-  }
-
-  /* GPS tag */
-  .gps-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--text3);
-    margin-top: 3px;
-    padding: 0 4px;
-  }
-
-  .gps-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
-    opacity: 0.7;
-  }
-
-  /* Input area */
-  #input-area {
-    border-top: 0.5px solid var(--border);
-    padding: 10px 12px 16px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    background: var(--bg);
-    flex-shrink: 0;
-  }
-
-  /* Photo preview */
-  #photo-preview-wrap {
-    display: none;
-    margin-bottom: 8px;
-    position: relative;
-    width: fit-content;
-  }
-
-  #photo-preview-wrap.visible { display: flex; }
-
-  #photo-preview {
-    width: 64px;
-    height: 64px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 0.5px solid var(--border2);
-  }
-
-  #remove-photo {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--danger);
-    border: none;
-    color: white;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-  }
-
-  #input-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-  }
-
-  #camera-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-  }
-
-  #camera-btn:active { transform: scale(0.93); }
-
-  #camera-btn svg { width: 18px; height: 18px; }
-
-  #camera-input { display: none; }
-
-  #text-input {
-    flex: 1;
-    background: var(--surface2);
-    border: 0.5px solid var(--border2);
-    border-radius: 21px;
-    padding: 10px 16px;
-    font-size: 14px;
-    color: var(--text);
-    resize: none;
-    outline: none;
-    font-family: inherit;
-    max-height: 100px;
-    min-height: 42px;
-    line-height: 1.4;
-    -webkit-appearance: none;
-  }
-
-  #text-input::placeholder { color: var(--text3); }
-
-  #send-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: var(--surface2);
-    border: 0.5px solid var(--border2);
-    cursor: pointer;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s, background 0.15s;
-  }
-
-  #send-btn:active { transform: scale(0.93); }
-  #send-btn.ready { background: var(--accent); border-color: var(--accent); }
-  #send-btn svg { width: 16px; height: 16px; }
-
-  /* Lightbox */
-  #lightbox {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.92);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-  }
-  #lightbox.visible { display: flex; }
-  #lightbox img { max-width: 95vw; max-height: 90vh; object-fit: contain; border-radius: 8px; }
-  #lightbox-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    font-size: 18px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Welcome */
-  #welcome {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    gap: 8px;
-    padding: 40px 20px;
-    text-align: center;
-  }
-
-  #welcome .icon {
-    font-size: 36px;
-    margin-bottom: 8px;
-  }
-
-  #welcome h2 {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  #welcome p {
-    font-size: 14px;
-    color: var(--text3);
-    max-width: 260px;
-    line-height: 1.6;
-  }
-
-  .divider {
-    text-align: center;
-    font-size: 11px;
-    color: var(--text3);
-    padding: 4px 0;
-    letter-spacing: 0.05em;
-  }
+#key-screen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 300; flex-direction: column; align-items: center; justify-content: center; padding: 24px; gap: 16px; }
+#key-screen .k-icon { font-size: 48px; }
+#key-screen h2 { font-size: 22px; font-weight: 700; color: var(--accent); }
+#key-screen p { font-size: 13px; color: var(--text2); text-align: center; max-width: 280px; line-height: 1.6; }
+#key-input { width: 100%; max-width: 320px; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 12px; padding: 12px 16px; font-size: 13px; color: var(--text); font-family: monospace; outline: none; -webkit-appearance: none; }
+#key-save { width: 100%; max-width: 320px; height: 52px; background: var(--accent); border: none; border-radius: 14px; font-size: 16px; font-weight: 700; color: #111; cursor: pointer; }
 </style>
 </head>
 <body>
 
 <div id="app">
   <div id="header">
-    <div id="header-left">
-      <h1>Hammer Time 🔨</h1>
-      <p id="header-sub">din byggelog</p>
+    <div>
+      <div id="header-title">Hammer Time 🔨</div>
+      <div id="header-sub">din byggelog</div>
     </div>
-    <div id="project-badge" class="none">intet projekt</div>
+    <div id="project-pill">intet projekt</div>
   </div>
 
-  <div id="chat">
-    <div id="welcome">
-      <div class="icon">🔨</div>
-      <h2>Hej Ingi</h2>
-      <p>Tag et foto fra pladsen eller stil et spørgsmål. Jeg husker alt.</p>
+  <div id="feed">
+    <div id="empty">
+      <div class="hammer">🔨</div>
+      <h2>Klar til at logge</h2>
+      <p>Tryk på knappen og tag et foto. GPS og tid registreres automatisk.</p>
     </div>
   </div>
 
-  <div id="input-area">
-    <div id="photo-preview-wrap">
-      <img id="photo-preview" src="" alt="">
-      <button id="remove-photo">×</button>
-    </div>
-    <div id="input-row">
-      <button id="camera-btn" title="Tag foto">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-      </button>
-      <input type="file" id="camera-input" accept="image/*" capture="environment">
-      <textarea id="text-input" placeholder="Skriv eller stil et spørgsmål..." rows="1"></textarea>
-      <button id="send-btn" title="Send">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
-    </div>
+  <div id="photo-preview-strip">
+    <img id="photo-thumb" src="" alt="">
+    <button id="photo-remove">×</button>
+    <span id="photo-hint">Tilføj en note eller send direkte</span>
+  </div>
+
+  <div id="note-area">
+    <button id="note-cancel">×</button>
+    <textarea id="note-input" placeholder="Tilføj note (valgfrit)..." rows="1"></textarea>
+    <button id="note-send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+
+  <div id="camera-area">
+    <button id="camera-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Foto — Registrér sag
+    </button>
+    <input type="file" id="camera-input" accept="image/*" capture="environment">
+  </div>
+</div>
+
+<div id="new-project-modal">
+  <div id="new-project-sheet">
+    <h3>Ny lokation registreret</h3>
+    <p class="addr" id="detected-addr">Henter adresse...</p>
+    <input id="project-name-input" type="text" placeholder="Giv sagen et navn...">
+    <button id="project-confirm-btn">Opret sag</button>
+    <button id="project-skip-btn">Spring over</button>
   </div>
 </div>
 
@@ -415,7 +147,15 @@
   <img id="lightbox-img" src="" alt="">
 </div>
 
-<!-- Firebase -->
+<div id="key-screen">
+  <div class="k-icon">🔨</div>
+  <h2>Hammer Time</h2>
+  <p>Indsæt din Anthropic API nøgle for at aktivere AI-funktioner. Gemmes kun på din enhed.</p>
+  <input id="key-input" type="password" placeholder="sk-ant-api03-...">
+  <button id="key-save">Gem og start</button>
+  <p style="font-size:11px; color:var(--text3); text-align:center;">Find den på console.anthropic.com</p>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
@@ -430,161 +170,74 @@ const firebaseConfig = {
   appId: "1:607382441157:web:410e1e5df3e35b39c2b4ac"
 };
 
-let CLAUDE_API_KEY = localStorage.getItem("ht_api_key") || "";
-
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const storage = getStorage(fbApp);
 
-// State
 let currentLocation = null;
+let knownProjects = {};
 let currentProject = null;
-let pendingPhoto = null;
-let pendingPhotoBase64 = null;
-let isThinking = false;
-let conversationHistory = [];
+let pendingPhotoDataUrl = null;
+let pendingPhotoFile = null;
+let CLAUDE_API_KEY = '';
 
-// DOM
-const chatEl = document.getElementById('chat');
-const welcomeEl = document.getElementById('welcome');
-const textInput = document.getElementById('text-input');
-const sendBtn = document.getElementById('send-btn');
+const feed = document.getElementById('feed');
+const empty = document.getElementById('empty');
 const cameraBtn = document.getElementById('camera-btn');
 const cameraInput = document.getElementById('camera-input');
-const photoPreviewWrap = document.getElementById('photo-preview-wrap');
-const photoPreview = document.getElementById('photo-preview');
-const removePhotoBtn = document.getElementById('remove-photo');
-const projectBadge = document.getElementById('project-badge');
+const noteArea = document.getElementById('note-area');
+const noteInput = document.getElementById('note-input');
+const noteSend = document.getElementById('note-send');
+const noteCancel = document.getElementById('note-cancel');
+const photoStrip = document.getElementById('photo-preview-strip');
+const photoThumb = document.getElementById('photo-thumb');
+const photoRemove = document.getElementById('photo-remove');
+const projectPill = document.getElementById('project-pill');
 const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-img');
-const lightboxClose = document.getElementById('lightbox-close');
+const newProjectModal = document.getElementById('new-project-modal');
+const detectedAddr = document.getElementById('detected-addr');
+const projectNameInput = document.getElementById('project-name-input');
 
-// GPS + reverse geocode
 async function reverseGeocode(lat, lng) {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
-      headers: { 'Accept-Language': 'da' }
-    });
-    const data = await res.json();
-    const a = data.address || {};
-    const parts = [
-      a.road,
-      a.house_number,
-      a.postcode,
-      a.city || a.town || a.village
-    ].filter(Boolean);
-    return parts.join(' ') || data.display_name?.split(',').slice(0,2).join(',') || null;
-  } catch(e) {
-    return null;
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, { headers: { 'Accept-Language': 'da' } });
+    const d = await res.json();
+    const a = d.address || {};
+    return [a.road, a.house_number, a.postcode, a.city || a.town || a.village].filter(Boolean).join(' ') || null;
+  } catch { return null; }
+}
+
+function locationKey(lat, lng) { return `${lat.toFixed(3)},${lng.toFixed(3)}`; }
+
+function setProject(name, save = true) {
+  currentProject = name;
+  projectPill.textContent = name;
+  projectPill.classList.add('active');
+  if (save && currentLocation) {
+    knownProjects[locationKey(currentLocation.lat, currentLocation.lng)] = { name };
+    localStorage.setItem('ht_projects', JSON.stringify(knownProjects));
   }
 }
+
+projectPill.onclick = () => {
+  const name = prompt('Ret sagens navn:', currentProject || '');
+  if (name && name.trim()) setProject(name.trim());
+};
 
 function getLocation() {
   if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    async pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const address = await reverseGeocode(lat, lng);
-      currentLocation = {
-        lat,
-        lng,
-        accuracy: pos.coords.accuracy,
-        address: address || null
-      };
-      // Update GPS tag in last user message if visible
-      const gpsTags = document.querySelectorAll('.gps-tag');
-      if (gpsTags.length > 0 && address) {
-        gpsTags[gpsTags.length - 1].innerHTML = `<span class=gps-dot></span>${address}`;
-      }
-    },
-    err => console.log('GPS:', err),
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    const address = await reverseGeocode(lat, lng);
+    currentLocation = { lat, lng, accuracy: pos.coords.accuracy, address };
+    const key = locationKey(lat, lng);
+    if (knownProjects[key]) setProject(knownProjects[key].name, false);
+  }, err => console.log('GPS:', err), { enableHighAccuracy: true, timeout: 15000 });
 }
 
-getLocation();
-setInterval(getLocation, 300000);
-
-// Format time
-function formatTime(date) {
-  return date.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDate(date) {
-  return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
-}
-
-// Add message to chat UI
-function addMessage(role, content, meta = {}) {
-  if (welcomeEl) welcomeEl.style.display = 'none';
-
-  const msg = document.createElement('div');
-  msg.className = `msg ${role}`;
-
-  const now = new Date();
-
-  if (meta.photoUrl || meta.photoDataUrl) {
-    const photoDiv = document.createElement('div');
-    photoDiv.className = 'photo-msg';
-    const img = document.createElement('img');
-    img.src = meta.photoDataUrl || meta.photoUrl;
-    img.alt = 'foto';
-    img.onclick = () => openLightbox(meta.photoUrl || meta.photoDataUrl);
-    photoDiv.appendChild(img);
-
-    const cap = document.createElement('div');
-    cap.className = 'photo-caption';
-    cap.textContent = `${formatTime(now)} · ${formatDate(now)}`;
-    photoDiv.appendChild(cap);
-    msg.appendChild(photoDiv);
-
-    if (content) {
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      bubble.textContent = content;
-      msg.appendChild(bubble);
-    }
-  } else {
-    const bubble = document.createElement('div');
-    bubble.className = `bubble${meta.thinking ? ' thinking' : ''}`;
-    bubble.textContent = content;
-    msg.appendChild(bubble);
-  }
-
-  if (currentLocation && role === 'user') {
-    const gps = document.createElement('div');
-    gps.className = 'gps-tag';
-    gps.innerHTML = `<span class="gps-dot"></span>${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`;
-    msg.appendChild(gps);
-  }
-
-  const metaEl = document.createElement('div');
-  metaEl.className = 'msg-meta';
-  metaEl.textContent = formatTime(now);
-  msg.appendChild(metaEl);
-
-  chatEl.appendChild(msg);
-  chatEl.scrollTop = chatEl.scrollHeight;
-  return msg;
-}
-
-function addThinking() {
-  return addMessage('ai', 'tænker...', { thinking: true });
-}
-
-// Lightbox
-function openLightbox(src) {
-  lightboxImg.src = src;
-  lightbox.classList.add('visible');
-}
-
-lightboxClose.onclick = () => lightbox.classList.remove('visible');
-lightbox.onclick = (e) => { if (e.target === lightbox) lightbox.classList.remove('visible'); };
-
-// Compress image to max 1200px, quality 0.75
 function compressImage(file) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
@@ -597,385 +250,184 @@ function compressImage(file) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url);
-        resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', 0.75) });
-      }, 'image/jpeg', 0.75);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve({ blob, dataUrl: canvas.toDataURL('image/jpeg', 0.78) }); }, 'image/jpeg', 0.78);
     };
     img.src = url;
   });
 }
 
-// Camera
-cameraBtn.onclick = () => cameraInput.click();
-
-cameraInput.onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const { blob, dataUrl } = await compressImage(file);
-  pendingPhoto = new File([blob], file.name, { type: 'image/jpeg' });
-  pendingPhotoBase64 = dataUrl.split(',')[1];
-  photoPreview.src = dataUrl;
-  photoPreviewWrap.classList.add('visible');
-  updateSendBtn();
-  textInput.focus();
-  cameraInput.value = '';
-};
-
-removePhotoBtn.onclick = () => {
-  pendingPhoto = null;
-  pendingPhotoBase64 = null;
-  photoPreviewWrap.classList.remove('visible');
-  photoPreview.src = '';
-  updateSendBtn();
-};
-
-// Send button state
-function updateSendBtn() {
-  const hasContent = textInput.value.trim() || pendingPhoto;
-  sendBtn.classList.toggle('ready', !!hasContent);
+async function uploadPhoto(file) {
+  const r = ref(storage, `photos/${Date.now()}_${file.name || 'photo.jpg'}`);
+  await uploadBytes(r, file);
+  return await getDownloadURL(r);
 }
 
-textInput.oninput = () => {
-  textInput.style.height = 'auto';
-  textInput.style.height = Math.min(textInput.scrollHeight, 100) + 'px';
-  updateSendBtn();
-};
+async function saveLog(data) {
+  try {
+    await addDoc(collection(db, 'logs'), { ...data, project: currentProject || null, location: currentLocation || null, timestamp: serverTimestamp() });
+  } catch(e) { console.error(e); }
+}
 
-textInput.onkeydown = (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    handleSend();
+function formatTime(d) { return d.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }); }
+function formatDate(d) { return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }); }
+
+function addEntryToFeed({ photoSrc, note, location, timestamp }) {
+  empty.style.display = 'none';
+  const el = document.createElement('div');
+  el.className = 'entry';
+
+  if (photoSrc) {
+    const img = document.createElement('img');
+    img.className = 'entry-photo';
+    img.src = photoSrc;
+    img.onclick = () => { lightboxImg.src = photoSrc; lightbox.classList.add('visible'); };
+    el.appendChild(img);
   }
+
+  if (note) {
+    const n = document.createElement('div');
+    n.className = 'entry-note';
+    n.textContent = note;
+    el.appendChild(n);
+  }
+
+  const ts = timestamp || new Date();
+  const meta = document.createElement('div');
+  meta.className = 'entry-meta';
+  const dot = document.createElement('div');
+  dot.className = 'entry-dot';
+  meta.appendChild(dot);
+  meta.appendChild(Object.assign(document.createElement('span'), { textContent: `${formatTime(ts)} · ${formatDate(ts)}` }));
+  if (location?.address) meta.appendChild(Object.assign(document.createElement('span'), { textContent: location.address }));
+  else if (currentProject) meta.appendChild(Object.assign(document.createElement('span'), { textContent: currentProject }));
+  el.appendChild(meta);
+
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function clearPending() {
+  pendingPhotoDataUrl = null;
+  pendingPhotoFile = null;
+  noteInput.value = '';
+  noteInput.style.height = 'auto';
+  photoStrip.classList.remove('visible');
+  noteArea.classList.remove('visible');
+}
+
+async function doLog(note) {
+  const photoSrc = pendingPhotoDataUrl;
+  const photoFile = pendingPhotoFile;
+  const loc = currentLocation ? { ...currentLocation } : null;
+  const ts = new Date();
+
+  addEntryToFeed({ photoSrc, note, location: loc, timestamp: ts });
+  clearPending();
+
+  try {
+    let photoUrl = null;
+    if (photoFile) photoUrl = await uploadPhoto(photoFile);
+    await saveLog({ photoUrl, note: note || null, role: 'log' });
+  } catch(e) { console.error('Log error:', e); }
+}
+
+function checkAndLog(note) {
+  if (!currentLocation) { doLog(note); return; }
+  const key = locationKey(currentLocation.lat, currentLocation.lng);
+  if (knownProjects[key]) { doLog(note); return; }
+
+  // New location — ask for project name
+  const addr = currentLocation.address || `${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}`;
+  detectedAddr.textContent = `GPS: ${addr}`;
+  projectNameInput.value = addr;
+  newProjectModal.classList.add('visible');
+
+  document.getElementById('project-confirm-btn').onclick = () => {
+    const name = projectNameInput.value.trim() || addr;
+    setProject(name);
+    newProjectModal.classList.remove('visible');
+    doLog(note);
+  };
+
+  document.getElementById('project-skip-btn').onclick = () => {
+    newProjectModal.classList.remove('visible');
+    doLog(note);
+  };
+}
+
+cameraBtn.onclick = () => cameraInput.click();
+
+cameraInput.onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  cameraInput.value = '';
+  const { blob, dataUrl } = await compressImage(file);
+  pendingPhotoFile = new File([blob], file.name || 'photo.jpg', { type: 'image/jpeg' });
+  pendingPhotoDataUrl = dataUrl;
+  photoThumb.src = dataUrl;
+  photoStrip.classList.add('visible');
+  noteArea.classList.add('visible');
+  noteInput.focus();
 };
 
-sendBtn.onclick = handleSend;
+photoRemove.onclick = clearPending;
+noteCancel.onclick = clearPending;
 
-// Load history from Firestore
+noteInput.oninput = () => { noteInput.style.height = 'auto'; noteInput.style.height = Math.min(noteInput.scrollHeight, 100) + 'px'; };
+noteInput.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); noteSend.click(); } };
+
+noteSend.onclick = () => {
+  if (!pendingPhotoDataUrl) return;
+  checkAndLog(noteInput.value.trim() || null);
+};
+
+document.getElementById('lightbox-close').onclick = () => lightbox.classList.remove('visible');
+lightbox.onclick = e => { if (e.target === lightbox) lightbox.classList.remove('visible'); };
+
 async function loadHistory() {
   try {
     const q = query(collection(db, 'logs'), orderBy('timestamp', 'asc'));
     const snap = await getDocs(q);
-    const msgs = [];
-    snap.forEach(doc => msgs.push({ id: doc.id, ...doc.data() }));
+    const entries = [];
+    snap.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
 
-    // Rebuild conversation context (last 30 entries)
-    const recent = msgs.slice(-30);
-    recent.forEach(m => {
-      if (m.role === 'user') {
-        const entry = { role: 'user', content: [] };
-        if (m.photoUrl) {
-          entry.content.push({ type: 'text', text: `[Foto logget - ${m.timestamp?.toDate?.()?.toLocaleDateString('da-DK') || 'dato ukendt'}${m.location ? ` - GPS: ${m.location.lat.toFixed(4)}, ${m.location.lng.toFixed(4)}` : ''}${m.project ? ` - Projekt: ${m.project}` : ''}]` });
-        }
-        if (m.text) entry.content.push({ type: 'text', text: m.text });
-        if (entry.content.length > 0) conversationHistory.push(entry);
-      } else if (m.role === 'ai' && m.text) {
-        conversationHistory.push({ role: 'assistant', content: m.text });
+    entries.slice(-40).forEach(e => {
+      if (e.role === 'log' || e.role === 'user') {
+        addEntryToFeed({ photoSrc: e.photoUrl, note: e.note || e.text, location: e.location, timestamp: e.timestamp?.toDate?.() || new Date() });
       }
     });
 
-    // Show last 20 in UI
-    const display = msgs.slice(-20);
-    if (display.length > 0) {
-      welcomeEl.style.display = 'none';
-      if (display.length > 20) {
-        const div = document.createElement('div');
-        div.className = 'divider';
-        div.textContent = `— ${msgs.length} tidligere opslag —`;
-        chatEl.insertBefore(div, chatEl.firstChild);
-      }
-      display.forEach(m => {
-        if (m.role === 'user') {
-          addMessage('user', m.text || '', { photoUrl: m.photoUrl });
-        } else {
-          addMessage('ai', m.text);
-        }
-      });
-
-      // Set current project from last known
-      const lastProject = [...msgs].reverse().find(m => m.project);
-      if (lastProject?.project) setProject(lastProject.project);
-    }
-  } catch (e) {
-    console.error('Load error:', e);
-  }
+    const last = [...entries].reverse().find(e => e.project);
+    if (last?.project) setProject(last.project, false);
+  } catch(e) { console.error('Load error:', e); }
 }
 
-function setProject(name) {
-  currentProject = name;
-  projectBadge.textContent = name;
-  projectBadge.classList.remove('none');
+function loadKnownProjects() {
+  try { const s = localStorage.getItem('ht_projects'); if (s) knownProjects = JSON.parse(s); } catch {}
 }
 
-// Save to Firestore
-async function saveLog(role, text, photoUrl = null, project = null) {
-  try {
-    await addDoc(collection(db, 'logs'), {
-      role,
-      text: text || null,
-      photoUrl: photoUrl || null,
-      project: project || currentProject || null,
-      location: currentLocation || null,
-      timestamp: serverTimestamp()
-    });
-  } catch (e) {
-    console.error('Save error:', e);
-  }
-}
-
-// Upload photo to Firebase Storage
-async function uploadPhoto(file) {
-  const filename = `photos/${Date.now()}_${file.name}`;
-  const storageRef = ref(storage, filename);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
-}
-
-// Build system prompt
-function buildSystemPrompt() {
-  const now = new Date();
-  return `Du er Hammer Time — en personlig byggelog assistent for Ingi, en tømrer og byggeentreprenør baseret i København.
-
-I dag er det ${now.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
-${currentProject ? `Aktivt projekt: ${currentProject}` : 'Intet aktivt projekt endnu.'}
-${currentLocation ? `Nuværende GPS: ${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}` : ''}
-
-Din opgave:
-- Log Ingis arbejde via fotos, noter og samtaler
-- Svar på spørgsmål om projekter, tid brugt, hvad der er sket
-- Identificer automatisk projekter fra GPS og kontekst
-- Hvis du ser et foto fra en ny lokation, spørg om det er et nyt projekt
-- Vær kortfattet og direkte — Ingi er på byggepladsen med snavsede hænder
-- Tal dansk
-- Hvis du opretter eller identificerer et projekt, start dit svar med: PROJEKT: [projektnavn]
-
-Du har adgang til hele samtalehistorikken. Brug den til at svare præcist på spørgsmål om hvad der er sket, hvornår, og på hvilke projekter.`;
-}
-
-// Call Claude API
-async function callClaude(userText, photoBase64 = null) {
-  const userMsg = { role: 'user', content: [] };
-
-  if (!photoBase64 && !userText) return null;
-
-  // Always inject metadata first so Claude always knows time + location
-  const now = new Date();
-  const meta = [
-    'Tidspunkt: ' + now.toLocaleString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    currentLocation ? 'Lokation: ' + (currentLocation.address || (currentLocation.lat.toFixed(5) + ', ' + currentLocation.lng.toFixed(5))) + ' (±' + Math.round(currentLocation.accuracy) + 'm)' : 'Lokation: ikke tilgængelig',
-    currentProject ? 'Projekt: ' + currentProject : 'Projekt: intet aktivt',
-  ].join(' | ');
-  userMsg.content.push({ type: 'text', text: meta });
-
-  if (photoBase64) {
-    userMsg.content.push({
-      type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: photoBase64 }
-    });
-  }
-
-  if (userText) {
-    userMsg.content.push({ type: 'text', text: userText });
-  }
-
-  conversationHistory.push(userMsg);
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
-      system: buildSystemPrompt(),
-      messages: conversationHistory
-    })
-  });
-
-  const data = await response.json();
-  const reply = data.content?.[0]?.text || 'Fejl — prøv igen.';
-
-  conversationHistory.push({ role: 'assistant', content: reply });
-
-  // Keep history manageable
-  if (conversationHistory.length > 60) {
-    conversationHistory = conversationHistory.slice(-50);
-  }
-
-  return reply;
-}
-
-// Parse project from AI reply
-function extractProject(reply) {
-  const match = reply.match(/PROJEKT:\s*(.+?)(\n|$)/);
-  if (match) return match[1].trim();
-  return null;
-}
-
-// Silent photo log — no AI, just save and confirm
-async function handlePhotoOnly(photoFile, photoBase64, photoDataUrl) {
-  const previewMsg = addMessage('user', '', { photoDataUrl });
-
-  try {
-    const photoUrl = await uploadPhoto(photoFile);
-    await saveLog('user', null, photoUrl);
-
-    // Show tiny confirm
-    const confirm = document.createElement('div');
-    confirm.className = 'msg ai';
-    confirm.innerHTML = `<div class="bubble" style="font-size:12px; color:var(--text3); padding:6px 12px;">✓ logget · ${currentLocation?.address || (currentLocation ? currentLocation.lat.toFixed(4)+', '+currentLocation.lng.toFixed(4) : 'ingen GPS')}</div>`;
-    chatEl.appendChild(confirm);
-    chatEl.scrollTop = chatEl.scrollHeight;
-
-    // Auto-detect project from location silently
-    if (currentLocation && !currentProject) {
-      const addr = currentLocation.address;
-      if (addr) setProject(addr.split(',')[0]);
-    }
-
-  } catch (err) {
-    addMessage('ai', `Fejl: ${err.message}`);
-  }
-}
-
-// Main send handler
-async function handleSend() {
-  if (isThinking) return;
-  const text = textInput.value.trim();
-  const hasPhoto = !!pendingPhoto;
-
-  if (!text && !hasPhoto) return;
-
-  // Detect if this is a question (AI wakes up) or just a log (silent)
-  const isQuestion = text && (text.trim().endsWith('?') || /^(hvad|hvor|hvem|hvornår|hvordan|hvorfor|kan du|vis mig|fortæl|what|how|when|who|why|show|tell)/i.test(text.trim()));
-  const silentLog = !isQuestion;
-
-  // Silent log — photo only, or photo+note, or plain note without question
-  if (silentLog) {
-    const photoFile = pendingPhoto;
-    const photoBase64 = pendingPhotoBase64;
-    const photoDataUrl = photoPreview.src;
-    pendingPhoto = null;
-    pendingPhotoBase64 = null;
-    photoPreviewWrap.classList.remove('visible');
-    photoPreview.src = '';
-    updateSendBtn();
-
-    // Show user message
-    if (hasPhoto) {
-      addMessage('user', text, { photoDataUrl });
-    } else if (text) {
-      addMessage('user', text);
-    }
-
-    try {
-      let photoUrl = null;
-      if (photoFile) photoUrl = await uploadPhoto(photoFile);
-      await saveLog('user', text || null, photoUrl);
-
-      const confirm = document.createElement('div');
-      confirm.className = 'msg ai';
-      confirm.innerHTML = `<div class="bubble" style="font-size:12px; color:var(--text3); padding:6px 12px;">✓ logget · ${currentLocation?.address || (currentLocation ? currentLocation.lat.toFixed(4)+', '+currentLocation.lng.toFixed(4) : 'ingen GPS')}</div>`;
-      chatEl.appendChild(confirm);
-      chatEl.scrollTop = chatEl.scrollHeight;
-
-      if (currentLocation && !currentProject) {
-        const addr = currentLocation.address;
-        if (addr) setProject(addr.split(',')[0]);
-      }
-    } catch (err) {
-      addMessage('ai', `Fejl: ${err.message}`);
-    }
-    return;
-  }
-
-  isThinking = true;
-  updateSendBtn();
-
-  const photoFile = pendingPhoto;
-  const photoBase64 = pendingPhotoBase64;
-  const photoDataUrl = photoPreview.src;
-
-  textInput.value = '';
-  textInput.style.height = 'auto';
-  pendingPhoto = null;
-  pendingPhotoBase64 = null;
-  photoPreviewWrap.classList.remove('visible');
-  photoPreview.src = '';
-
-  addMessage('user', text, hasPhoto ? { photoDataUrl } : {});
-
-  const thinkingMsg = addThinking();
-
-  try {
-    let photoUrl = null;
-    if (photoFile) {
-      photoUrl = await uploadPhoto(photoFile);
-    }
-
-    await saveLog('user', text || null, photoUrl);
-
-    const reply = await callClaude(text, photoBase64);
-
-    thinkingMsg.remove();
-
-    const detectedProject = extractProject(reply);
-    if (detectedProject) setProject(detectedProject);
-
-    const cleanReply = reply.replace(/PROJEKT:\s*.+?(\n|$)/, '').trim();
-
-    addMessage('ai', cleanReply);
-    await saveLog('ai', cleanReply);
-
-  } catch (err) {
-    thinkingMsg.remove();
-    addMessage('ai', `Fejl: ${err.message || 'ukendt fejl'}`);
-    console.error('HammerTime error:', err);
-  }
-
-  isThinking = false;
-  updateSendBtn();
-}
-
-// Init
-function checkApiKey() {
-  CLAUDE_API_KEY = localStorage.getItem("ht_api_key") || "";
+function init() {
+  CLAUDE_API_KEY = localStorage.getItem('ht_api_key') || '';
+  loadKnownProjects();
   if (!CLAUDE_API_KEY) {
-    document.getElementById("key-screen").style.display = "flex";
+    document.getElementById('key-screen').style.display = 'flex';
   } else {
     loadHistory();
+    getLocation();
   }
 }
 
-document.getElementById("key-save").onclick = () => {
-  const val = document.getElementById("key-input").value.trim();
-  if (!val.startsWith("sk-ant-")) {
-    alert("Det ser ikke ud som en gyldig API nøgle. Den skal starte med sk-ant-");
-    return;
-  }
-  localStorage.setItem("ht_api_key", val);
+document.getElementById('key-save').onclick = () => {
+  const val = document.getElementById('key-input').value.trim();
+  if (!val.startsWith('sk-ant-')) { alert('Ugyldig nøgle'); return; }
+  localStorage.setItem('ht_api_key', val);
   CLAUDE_API_KEY = val;
-  document.getElementById("key-screen").style.display = "none";
+  document.getElementById('key-screen').style.display = 'none';
   loadHistory();
+  getLocation();
 };
 
-checkApiKey();
+init();
 </script>
-
-<!-- API Key Setup -->
-<div id="key-screen" style="display:none; position:fixed; inset:0; background:#0a0a0a; z-index:200; flex-direction:column; align-items:center; justify-content:center; padding:24px; gap:16px;">
-  <p style="font-size:28px;">🔨</p>
-  <h2 style="font-size:18px; font-weight:600; color:#f0f0f0;">Hammer Time</h2>
-  <p style="font-size:13px; color:#888; text-align:center; max-width:280px; line-height:1.6;">Indsæt din Anthropic API nøgle for at komme i gang. Den gemmes kun på din enhed.</p>
-  <input id="key-input" type="password" placeholder="sk-ant-api03-..." style="width:100%; max-width:320px; background:#1c1c1c; border:0.5px solid rgba(255,255,255,0.14); border-radius:12px; padding:12px 16px; font-size:14px; color:#f0f0f0; outline:none; font-family:monospace;">
-  <button id="key-save" style="width:100%; max-width:320px; background:#e8c84a; border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:600; color:#0a0a0a; cursor:pointer;">Gem og start</button>
-  <p style="font-size:11px; color:#555; text-align:center; max-width:280px;">Nøglen forlader aldrig din enhed. Find den på console.anthropic.com</p>
-</div>
-
 </body>
 </html>
